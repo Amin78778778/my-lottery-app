@@ -3,23 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uğur Çarxı</title>
+    <title>Peşəkar Lotereya</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #0f0f0f; color: white; padding-top: 60px; overflow: hidden; }
-        .container { padding: 20px; }
-        .wheel-btn { background: linear-gradient(45deg, #0088cc, #00c6ff); color: white; border: none; padding: 20px 50px; border-radius: 50px; font-size: 22px; font-weight: bold; cursor: pointer; box-shadow: 0 5px 20px rgba(0,136,204,0.5); transition: 0.3s; }
-        .wheel-btn:active { transform: scale(0.95); }
-        .status { margin-top: 40px; font-size: 26px; color: #f1c40f; text-shadow: 0 0 10px rgba(241,196,15,0.3); min-height: 40px; }
+        :root {
+            --bg-color: #0d1117;
+            --main-panel-bg: #2d3e5a;
+            --button-primary: #5d78ff;
+            --text-color: white;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --star-color: #f1c40f;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .lottery-panel {
+            background: var(--main-panel-bg);
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+
+        /* Yuxarı Hissə (Lottery #11 və Sold) */
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            font-size: 14px;
+        }
+
+        /* Mərkəzi Hissə (Düymə və Şəkil) */
+        .panel-center {
+            padding: 20px;
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .participate-btn {
+            background: var(--button-primary);
+            color: var(--text-color);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .participate-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Şəkil (Sadəlik üçün mən burada vizual bir blok istifadə edəcəm) */
+        .panel-image {
+            width: 70px;
+            height: 70px;
+            background: #202b3c;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+        }
+
+        /* Aşağı Hissə (Tiket sayı və Ulduz) */
+        .panel-footer {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px 15px;
+            text-align: center;
+            font-size: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .sold-label {
+            color: var(--text-secondary);
+        }
+
+        .star-icon {
+            color: var(--star-color);
+            font-size: 16px;
+        }
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Uğur Çarxı 🎡</h1>
-        <p>Aşağıdakı düyməni sıxaraq bəxtini yoxla!</p>
-        <br><br>
-        <button class="wheel-btn" onclick="startLottery()">ÇARXI FIRLAT</button>
-        <div id="result" class="status"></div>
+
+    <div class="lottery-panel">
+        
+        <div class="panel-header">
+            <div>Lottery #11</div>
+            <div>Sold: <span id="soldCount">9860</span>/10000</div>
+        </div>
+
+        <div class="panel-center">
+            <button class="participate-btn" onclick="startParticipation()">Participate</button>
+            
+            <div class="panel-image">🔒</div> 
+        </div>
+
+        <div class="panel-footer">
+            10000 tickets • 5 <span class="star-icon">★</span>
+        </div>
+
     </div>
 
     <script>
@@ -27,22 +128,26 @@
         tg.expand();
         tg.ready();
 
-        function startLottery() {
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerText = "Çarx fırlanır... ✨";
+        function startParticipation() {
+            // İştirak et düyməsini sıxanda nə olacaq
+            const currentSold = parseInt(document.getElementById('soldCount').innerText);
             
-            setTimeout(() => {
-                const prizes = ["100 Ulduz ✨", "Telegram Premium 💎", "Bəxtini yenidən yoxla 🔄", "Sürpriz Hədiyyə 🎁"];
-                const finalResult = prizes[Math.floor(Math.random() * prizes.length)];
+            if (currentSold < 10000) {
+                // Sadəlik üçün sayı artırırıq (real bazada back-end lazımdır)
+                document.getElementById('soldCount').innerText = currentSold + 1;
                 
-                resultDiv.innerText = "Qazandınız: " + finalResult;
-
                 tg.showPopup({
                     title: 'Təbriklər!',
-                    message: finalResult + ' qazandınız!',
+                    message: 'Lotereyaya iştirakınız uğurla qeydə alındı! 🎉',
                     buttons: [{type: 'ok'}]
                 });
-            }, 1500);
+            } else {
+                tg.showPopup({
+                    title: 'Xəta',
+                    message: 'Təəssüf, bütün biletlər satılıb.',
+                    buttons: [{type: 'close'}]
+                });
+            }
         }
     </script>
 </body>
