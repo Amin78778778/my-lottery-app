@@ -3,151 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Peşəkar Lotereya</title>
+    <title>Lotereya Sistemi</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-color: #0d1117;
-            --main-panel-bg: #2d3e5a;
-            --button-primary: #5d78ff;
-            --text-color: white;
-            --text-secondary: rgba(255, 255, 255, 0.7);
-            --star-color: #f1c40f;
+            --bg-dark: #17212b;
+            --panel-bg: #242f3d;
+            --accent-blue: #50a2e9;
+            --text-main: #ffffff;
+            --text-gray: #8193a8;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
             margin: 0;
-            background: var(--bg-color);
-            color: var(--text-color);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Əsas Panel */
+        .card {
+            background: var(--panel-bg);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
             padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .lottery-title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+        .lottery-sub { color: var(--accent-blue); font-size: 14px; margin-bottom: 20px; }
+
+        .image-container {
+            background: linear-gradient(135deg, #5d78ff, #3a4bb1);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
             display: flex;
             justify-content: center;
         }
 
-        .lottery-panel {
-            background: var(--main-panel-bg);
-            border-radius: 15px;
-            width: 90%;
-            max-width: 400px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-        }
-
-        /* Yuxarı Hissə (Lottery #11 və Sold) */
-        .panel-header {
+        .info-row {
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 12px;
             display: flex;
             justify-content: space-between;
-            padding: 10px 15px;
-            font-size: 14px;
+            margin-bottom: 10px;
+            font-size: 15px;
         }
 
-        /* Mərkəzi Hissə (Düymə və Şəkil) */
-        .panel-center {
-            padding: 20px;
-            position: relative;
+        .label { color: var(--text-gray); }
+
+        /* Slider Bölməsi */
+        .buy-section {
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .slider-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            margin-bottom: 15px;
         }
 
-        .participate-btn {
-            background: var(--button-primary);
-            color: var(--text-color);
+        input[type=range] {
+            width: 100%;
+            margin: 15px 0;
+            accent-color: var(--accent-blue);
+        }
+
+        .buy-btn {
+            background: var(--accent-blue);
+            color: white;
             border: none;
-            padding: 12px 25px;
-            border-radius: 20px;
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .participate-btn:active {
-            transform: scale(0.95);
-        }
-
-        /* Şəkil (Sadəlik üçün mən burada vizual bir blok istifadə edəcəm) */
-        .panel-image {
-            width: 70px;
-            height: 70px;
-            background: #202b3c;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
-        }
-
-        /* Aşağı Hissə (Tiket sayı və Ulduz) */
-        .panel-footer {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 10px 15px;
-            text-align: center;
-            font-size: 14px;
+            margin-top: 15px;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 5px;
         }
 
-        .sold-label {
-            color: var(--text-secondary);
-        }
-
-        .star-icon {
-            color: var(--star-color);
-            font-size: 16px;
-        }
-
+        .buy-btn:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
 
-    <div class="lottery-panel">
-        
-        <div class="panel-header">
-            <div>Lottery #11</div>
-            <div>Sold: <span id="soldCount">9860</span>/10000</div>
+    <div class="card">
+        <div class="lottery-title">Lottery #11</div>
+        <div class="lottery-sub">Cupid Charm X10</div>
+
+        <div class="image-container">
+            <span style="font-size: 60px;">❤️</span>
         </div>
 
-        <div class="panel-center">
-            <button class="participate-btn" onclick="startParticipation()">Participate</button>
+        <div class="info-row">
+            <span class="label">Tickets</span>
+            <span>9860 / 10000</span>
+        </div>
+
+        <div class="info-row">
+            <span class="label">Your tickets</span>
+            <span id="userTickets">2</span>
+        </div>
+
+        <div class="buy-section">
+            <div class="slider-header">
+                <span class="label">Number of tickets</span>
+                <b id="ticketValue">1</b>
+            </div>
             
-            <div class="panel-image">🔒</div> 
-        </div>
+            <input type="range" id="ticketSlider" min="1" max="10" value="1" oninput="updatePrice(this.value)">
+            
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-gray);">
+                <span>1</span>
+                <span>10</span>
+            </div>
 
-        <div class="panel-footer">
-            10000 tickets • 5 <span class="star-icon">★</span>
+            <button class="buy-btn" onclick="processPayment()">
+                Buy for <span id="totalPrice">5</span> ⭐️
+            </button>
         </div>
-
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.ready();
 
-        function startParticipation() {
-            // İştirak et düyməsini sıxanda nə olacaq
-            const currentSold = parseInt(document.getElementById('soldCount').innerText);
-            
-            if (currentSold < 10000) {
-                // Sadəlik üçün sayı artırırıq (real bazada back-end lazımdır)
-                document.getElementById('soldCount').innerText = currentSold + 1;
-                
-                tg.showPopup({
-                    title: 'Təbriklər!',
-                    message: 'Lotereyaya iştirakınız uğurla qeydə alındı! 🎉',
-                    buttons: [{type: 'ok'}]
-                });
-            } else {
-                tg.showPopup({
-                    title: 'Xəta',
-                    message: 'Təəssüf, bütün biletlər satılıb.',
-                    buttons: [{type: 'close'}]
-                });
-            }
+        function updatePrice(val) {
+            document.getElementById('ticketValue').innerText = val;
+            document.getElementById('totalPrice').innerText = val * 5;
+        }
+
+        function processPayment() {
+            const count = document.getElementById('ticketSlider').value;
+            const price = count * 5;
+
+            tg.showPopup({
+                title: 'Ödəniş Təsdiqi',
+                message: count + ' bilet üçün ' + price + ' ulduz ödəniləcək. Davam edilsin?',
+                buttons: [
+                    {id: 'ok', type: 'ok', text: 'Bəli'},
+                    {id: 'cancel', type: 'cancel', text: 'Ləğv et'}
+                ]
+            });
         }
     </script>
 </body>
