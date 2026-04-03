@@ -55,7 +55,7 @@
         // 1. Bazadan real vaxtda bilet sayını oxumaq
         database.ref('tickets_left').on('value', (snapshot) => {
             const count = snapshot.val();
-            document.getElementById('liveCount').innerText = (count || 0) + " / 15";
+document.getElementById('liveCount').innerText = (count || 0) + " / 15";
         });
 
         // 2. Bilet alma funksiyası
