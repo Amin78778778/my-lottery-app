@@ -7,11 +7,11 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-dark: #17212b;
-            --panel-bg: #242f3d;
-            --accent-blue: #50a2e9;
+            --bg-dark: #1a1a2e; /* Bir az daha tünd bənövşəyi-göy tonları */
+            --panel-bg: #2d2d4a; /* Daha tünd panel tonları */
+            --accent-blue: #5d78ff;
             --text-main: #ffffff;
-            --text-gray: #8193a8;
+            --text-gray: #a1a1c1;
         }
 
         body {
@@ -34,18 +34,27 @@
             padding: 20px;
             box-sizing: border-box;
             text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
 
         .lottery-title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-        .lottery-sub { color: var(--accent-blue); font-size: 14px; margin-bottom: 20px; }
+        .lottery-sub { color: #f1c40f; font-size: 14px; margin-bottom: 20px; }
 
         .image-container {
-            background: linear-gradient(135deg, #5d78ff, #3a4bb1);
+            background: linear-gradient(135deg, #3d3d7d, #1a1a2e); /* Mövzuya uyğun bir fon */
             border-radius: 12px;
-            padding: 30px;
+            padding: 20px;
             margin-bottom: 20px;
             display: flex;
             justify-content: center;
+            align-items: center;
+        }
+
+        /* Şəkil Stilini Ayarlamaq */
+        .lottery-image {
+            max-width: 100%;
+            max-height: 180px;
+            object-fit: contain;
         }
 
         .info-row {
@@ -77,7 +86,7 @@
         input[type=range] {
             width: 100%;
             margin: 15px 0;
-            accent-color: var(--accent-blue);
+            accent-color: #f1c40f; /* Ulduz rənginə uyğunlaşdırdıq */
         }
 
         .buy-btn {
@@ -95,19 +104,21 @@
             justify-content: center;
             align-items: center;
             gap: 5px;
+            transition: 0.2s;
         }
 
         .buy-btn:active { transform: scale(0.98); }
+        .buy-btn:hover { background: #4a64d1; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <div class="lottery-title">Lottery #11</div>
-        <div class="lottery-sub">Cupid Charm X10</div>
+        <div class="lottery-title">Pumpernickel Prize 🎃</div>
+        <div class="lottery-sub">Halloween Harvest X10</div>
 
         <div class="image-container">
-            <span style="font-size: 60px;">❤️</span>
+            <img src="image_11.png" alt="Lolli-pop" class="lottery-image">
         </div>
 
         <div class="info-row">
@@ -131,6 +142,7 @@
             <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-gray);">
                 <span>1</span>
                 <span>10</span>
+                <span>(Max 10 per purchase)</span>
             </div>
 
             <button class="buy-btn" onclick="processPayment()">
@@ -153,11 +165,11 @@
             const price = count * 5;
 
             tg.showPopup({
-                title: 'Ödəniş Təsdiqi',
-                message: count + ' bilet üçün ' + price + ' ulduz ödəniləcək. Davam edilsin?',
+                title: 'Confirm Purchase',
+                message: 'Buy ' + count + ' harvest tickets for ' + price + ' stars?',
                 buttons: [
-                    {id: 'ok', type: 'ok', text: 'Bəli'},
-                    {id: 'cancel', type: 'cancel', text: 'Ləğv et'}
+                    {id: 'ok', type: 'ok', text: 'Yes, Buy Now'},
+                    {id: 'cancel', type: 'cancel', text: 'Maybe Later'}
                 ]
             });
         }
