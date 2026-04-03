@@ -3,174 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lotereya Sistemi</title>
+    <title>Real-Time Lottery</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
-        :root {
-            --bg-dark: #1a1a2e; /* Bir az daha tünd bənövşəyi-göy tonları */
-            --panel-bg: #2d2d4a; /* Daha tünd panel tonları */
-            --accent-blue: #5d78ff;
-            --text-main: #ffffff;
-            --text-gray: #a1a1c1;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            margin: 0;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* Əsas Panel */
-        .card {
-            background: var(--panel-bg);
-            border-radius: 16px;
-            width: 100%;
-            max-width: 400px;
-            padding: 20px;
-            box-sizing: border-box;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        }
-
-        .lottery-title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-        .lottery-sub { color: #f1c40f; font-size: 14px; margin-bottom: 20px; }
-
-        .image-container {
-            background: linear-gradient(135deg, #3d3d7d, #1a1a2e); /* Mövzuya uyğun bir fon */
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* Şəkil Stilini Ayarlamaq */
-        .lottery-image {
-            max-width: 100%;
-            max-height: 180px;
-            object-fit: contain;
-        }
-
-        .info-row {
-            background: rgba(0,0,0,0.2);
-            border-radius: 10px;
-            padding: 12px;
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 15px;
-        }
-
+        :root { --bg-dark: #12121e; --panel-bg: #1e1e2e; --accent-blue: #5d78ff; --text-main: #ffffff; --text-gray: #a1a1c1; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: var(--panel-bg); border-radius: 16px; width: 100%; max-width: 400px; padding: 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .image-container { background: #12121e; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .lottery-image { max-width: 100%; max-height: 180px; object-fit: contain; }
+        .info-row { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 12px; display: flex; justify-content: space-between; margin-bottom: 10px; }
         .label { color: var(--text-gray); }
-
-        /* Slider Bölməsi */
-        .buy-section {
-            background: rgba(0,0,0,0.2);
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .slider-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
-
-        input[type=range] {
-            width: 100%;
-            margin: 15px 0;
-            accent-color: #f1c40f; /* Ulduz rənginə uyğunlaşdırdıq */
-        }
-
-        .buy-btn {
-            background: var(--accent-blue);
-            color: white;
-            border: none;
-            width: 100%;
-            padding: 14px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 15px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 5px;
-            transition: 0.2s;
-        }
-
-        .buy-btn:active { transform: scale(0.98); }
-        .buy-btn:hover { background: #4a64d1; }
+        .buy-section { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 15px; margin-top: 15px; }
+        .buy-btn { background: var(--accent-blue); color: white; border: none; width: 100%; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 15px; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <div class="lottery-title">Pumpernickel Prize 🎃</div>
-        <div class="lottery-sub">Halloween Harvest X10</div>
+        <div style="font-size: 20px; font-weight: bold;">Lottery #11</div>
+        <div style="color: #f1c40f; margin-bottom: 20px;">Halloween Harvest</div>
 
         <div class="image-container">
-           <img src="KiUSpHwiLpZbyQtO3P25vW4JmrIQTIqZCdvySYde.jpg" alt="Lotereya Şəkli" class="lottery-image">
+            <img src="KiUSpHwiLpZbyQtO3P25vW4JmrIQTIqZCdvySYde.jpg" class="lottery-image">
         </div>
 
         <div class="info-row">
-            <span class="label">Tickets</span>
-            <span>9860 / 10000</span>
-        </div>
-
-        <div class="info-row">
-            <span class="label">Your tickets</span>
-            <span id="userTickets">2</span>
+            <span class="label">Biletlər:</span>
+            <span id="liveCount">Yüklənir...</span>
         </div>
 
         <div class="buy-section">
-            <div class="slider-header">
-                <span class="label">Number of tickets</span>
-                <b id="ticketValue">1</b>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span class="label">Sayı:</span>
+                <b id="tVal">1</b>
             </div>
-            
-            <input type="range" id="ticketSlider" min="1" max="10" value="1" oninput="updatePrice(this.value)">
-            
-            <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-gray);">
-                <span>1</span>
-                <span>10</span>
-                <span>(Max 10 per purchase)</span>
-            </div>
-
-            <button class="buy-btn" onclick="processPayment()">
-                Buy for <span id="totalPrice">5</span> ⭐️
-            </button>
+            <input type="range" id="ticketSlider" min="1" max="10" value="1" style="width:100%; accent-color:#f1c40f;" oninput="document.getElementById('tVal').innerText = this.value; document.getElementById('price').innerText = this.value * 5">
+            <button class="buy-btn" onclick="buyTicket()">Al: <span id="price">5</span> ⭐️</button>
         </div>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        // FİREBASE KONFİQURASİYASI
+        const firebaseConfig = {
+            databaseURL: "https://my-lottery-db-default-rtdb.firebaseio.com/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-        function updatePrice(val) {
-            document.getElementById('ticketValue').innerText = val;
-            document.getElementById('totalPrice').innerText = val * 5;
-        }
+        // 1. Bazadan real vaxtda bilet sayını oxumaq
+        database.ref('tickets_left').on('value', (snapshot) => {
+            const count = snapshot.val();
+            document.getElementById('liveCount').innerText = (count || 0) + " / 10000";
+        });
 
-        function processPayment() {
-            const count = document.getElementById('ticketSlider').value;
-            const price = count * 5;
+        // 2. Bilet alma funksiyası
+        function buyTicket() {
+            const countToBuy = parseInt(document.getElementById('ticketSlider').value);
+            const tg = window.Telegram.WebApp;
 
-            tg.showPopup({
-                title: 'Confirm Purchase',
-                message: 'Buy ' + count + ' harvest tickets for ' + price + ' stars?',
-                buttons: [
-                    {id: 'ok', type: 'ok', text: 'Yes, Buy Now'},
-                    {id: 'cancel', type: 'cancel', text: 'Maybe Later'}
-                ]
+            database.ref('tickets_left').transaction((currentCount) => {
+                if (currentCount >= countToBuy) {
+                    return currentCount - countToBuy;
+                }
+                return; // Əgər bilet çatmasa heç nə etmə
+            }, (error, committed) => {
+                if (committed) {
+                    tg.showPopup({ 
+                        title: 'Uğurlu!', 
+                        message: countToBuy + ' bilet balansınızdan çıxıldı. Uğurlar!' 
+                    });
+                } else {
+                    tg.showPopup({ title: 'Xəta', message: 'Bilet alınmadı və ya tükənib.' });
+                }
             });
         }
     </script>
