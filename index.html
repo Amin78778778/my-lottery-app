@@ -59,9 +59,20 @@
         });
 
         // 2. Bilet alma funksiyası
-        function buyTicket() {
-            const countToBuy = parseInt(document.getElementById('ticketSlider').value);
-            const tg = window.Telegram.WebApp;
+function buyTicket() {
+    const countToBuy = document.getElementById('ticketSlider').value;
+    const price = countToBuy * 5; 
+
+    const data = {
+        action: "buy_stars",
+        count: parseInt(countToBuy),
+        total_price: price
+    };
+
+    // Bu kod məlumatı bota göndərir
+    window.Telegram.WebApp.sendData(JSON.stringify(data));
+    window.Telegram.WebApp.close();
+}
 
             database.ref('tickets_left').transaction((currentCount) => {
                 if (currentCount >= countToBuy) {
