@@ -1,1 +1,49 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uğur Çarxı</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #0f0f0f; color: white; padding-top: 60px; overflow: hidden; }
+        .container { padding: 20px; }
+        .wheel-btn { background: linear-gradient(45deg, #0088cc, #00c6ff); color: white; border: none; padding: 20px 50px; border-radius: 50px; font-size: 22px; font-weight: bold; cursor: pointer; box-shadow: 0 5px 20px rgba(0,136,204,0.5); transition: 0.3s; }
+        .wheel-btn:active { transform: scale(0.95); }
+        .status { margin-top: 40px; font-size: 26px; color: #f1c40f; text-shadow: 0 0 10px rgba(241,196,15,0.3); min-height: 40px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Uğur Çarxı 🎡</h1>
+        <p>Aşağıdakı düyməni sıxaraq bəxtini yoxla!</p>
+        <br><br>
+        <button class="wheel-btn" onclick="startLottery()">ÇARXI FIRLAT</button>
+        <div id="result" class="status"></div>
+    </div>
 
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        function startLottery() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerText = "Çarx fırlanır... ✨";
+            
+            setTimeout(() => {
+                const prizes = ["100 Ulduz ✨", "Telegram Premium 💎", "Bəxtini yenidən yoxla 🔄", "Sürpriz Hədiyyə 🎁"];
+                const finalResult = prizes[Math.floor(Math.random() * prizes.length)];
+                
+                resultDiv.innerText = "Qazandınız: " + finalResult;
+
+                tg.showPopup({
+                    title: 'Təbriklər!',
+                    message: finalResult + ' qazandınız!',
+                    buttons: [{type: 'ok'}]
+                });
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
