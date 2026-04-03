@@ -59,7 +59,7 @@
         database.ref('tickets_left').on('value', (snapshot) => {
             const count = snapshot.val();
             // Əgər bazada rəqəm varsa göstər, yoxdursa "..." yaz
-            document.getElementById('liveCount').innerText = (count !== null ? count : "...") + " / 10000";
+            document.getElementById('liveCount').innerText = (count !== null ? count : "...") + " / 15";
         });
 
         // Qiyməti yeniləmək üçün funksiya
