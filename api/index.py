@@ -6,131 +6,114 @@ from firebase_admin import credentials, db
 
 app = Flask(__name__)
 
-# --- FİREBASE KONFİQURASİYASI ---
+# --- FİREBASE BAĞLANTISI (Sığortalı) ---
+FB_URL = 'https://my-lottery-db-default-rtdb.firebaseio.com'
+
 if not firebase_admin._apps:
     try:
-        firebase_admin.initialize_app(options={
-            'databaseURL': 'https://my-lottery-db-default-rtdb.firebaseio.com'
-        })
+        firebase_admin.initialize_app(options={'databaseURL': FB_URL})
     except Exception as e:
         print(f"Firebase Init Error: {e}")
 
 TOKEN = "8207828317:AAFub6sP6uoLWTcjydq2qybviAuaWTARA_o"
 
 def get_db_values():
-    """Bazada bilet sayını və sonuncu nömrəni yoxlayır."""
+    """Bazada bilet sayını yoxlayır, xəta olsa 100 qaytarır ki bot donmasın."""
     try:
         ref = db.reference('/')
         data = ref.get()
-        if not data:
-            return 100, 0
-        left = data.get('tickets_left', 100)
-        last_no = data.get('last_ticket_no', 0)
-        return int(left), int(last_no)
-    except:
-        return 100, 0
+        if data:
+            left = data.get('tickets_left', 100)
+            last_no = data.get('last_ticket_no', 0)
+            return int(left), int(last_no)
+    except Exception as e:
+        print(f"DB Read Error: {e}")
+    return 100, 0
 
 def process_purchase(bought_count):
     """Biletləri azaldır və ardıcıl nömrələri təyin edir."""
-    left, last_no = get_db_values()
-    start_no = last_no + 1
-    end_no = last_no + bought_count
-    ticket_numbers = list(range(start_no, end_no + 1))
-    
-    ref = db.reference('/')
-    new_left = max(0, left - bought_count)
-    ref.update({
-        'tickets_left': new_left,
-        'last_ticket_no': end_no
-    })
-    return ticket_numbers, new_left
+    try:
+        left, last_no = get_db_values()
+        start_no = last_no + 1
+        end_no = last_no + bought_count
+        ticket_numbers = list(range(start_no, end_no + 1))
+        
+        new_left = max(0, left - bought_count)
+        ref = db.reference('/')
+        ref.update({
+            'tickets_left': new_left,
+            'last_ticket_no': end_no
+        })
+        return ticket_numbers, new_left
+    except Exception as e:
+        print(f"DB Update Error: {e}")
+        return [], 0
 
 @app.route('/api', methods=['POST'])
 def webhook():
-    update = request.get_json()
-    if not update:
-        return "OK", 200
+    try:
+        update = request.get_json()
+        if not update:
+            return "OK", 200
 
-    if "message" in update:
-        msg_data = update["message"]
-        chat_id = msg_data["chat"]["id"]
-        
-        # 1. Mətn Mesajları (Menyu)
-        if "text" in msg_data:
-            text = msg_data["text"]
+        # --- 1. ÖDƏNİŞ ÖNCƏSİ TƏSDİQ (Donmaması üçün ən vacib hissə) ---
+        if "pre_checkout_query" in update:
+            requests.post(f"https://api.telegram.org/bot{TOKEN}/answerPreCheckoutQuery", 
+                         data={"pre_checkout_query_id": update["pre_checkout_query"]["id"], "ok": True})
+            return "OK", 200
+
+        if "message" in update:
+            msg = update["message"]
+            chat_id = msg["chat"]["id"]
             
-            if text == "/start":
-                left, _ = get_db_values()
-                welcome_text = (
-                    f"🌟 **NFT Lottery Aze** 🌟\n\n"
-                    f"Lotereyamızda iştirak üçün bilet əldə edə bilərsiniz.\n\n"
-                    f"📊 **Statistika:**\n"
-                    f"🎟 Ümumi bilet: **100**\n"
-                    f"🎟 Qalan bilet: **{left} / 100**\n"
-                    f"💎 Bilet qiyməti: **5 Star**\n\n"
-                    "Bilet sayını seçin:"
-                )
-                reply_markup = {
-                    "keyboard": [
-                        [{"text": "🎟 1 Bilet (5 ⭐)"}, {"text": "🎟 5 Bilet (25 ⭐)"}],
-                        [{"text": "🎟 10 Bilet (50 ⭐)"}],
-                        [{"text": "🔄 Yenilə / Sayı Yoxla"}]
-                    ],
-                    "resize_keyboard": True
-                }
-                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                             json={"chat_id": chat_id, "text": welcome_text, "parse_mode": "Markdown", "reply_markup": reply_markup})
-
-            elif "Bilet" in text:
-                # Seçilən bilet sayını tapırıq
-                count = 1
-                if "5 Bilet" in text: count = 5
-                elif "10 Bilet" in text: count = 10
+            # --- 2. ÖDƏNİŞ UĞURLU OLANDA ---
+            if "successful_payment" in msg:
+                payload = msg["successful_payment"]["invoice_payload"]
+                count = int(payload.split('_')[1])
+                nos, left = process_purchase(count)
+                nos_str = ", ".join([f"№{n}" for n in nos])
                 
-                left, _ = get_db_values()
-                if left < count:
-                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                                 json={"chat_id": chat_id, "text": f"❌ Təəssüf ki, cəmi {left} bilet qalıb."})
-                else:
-                    # Stars Fakturası göndərilir
-                    url = f"https://api.telegram.org/bot{TOKEN}/sendInvoice"
-                    payload = {
-                        "chat_id": chat_id,
-                        "title": f"Lotereya Bileti ({count} ədəd)",
-                        "description": f"Cəmi {count * 5} Star. Ödənişdən sonra ardıcıl nömrələriniz veriləcək.",
-                        "payload": f"lottery_{count}",
-                        "provider_token": "", 
-                        "currency": "XTR",
-                        "prices": json.dumps([{"label": "Bilet", "amount": count * 5}])
-                    }
-                    requests.post(url, data=payload)
-
-            elif "Yenilə" in text:
-                left, _ = get_db_values()
+                res_msg = f"✅ **Ödəniş Uğurlu!**\n\n🎫 Biletləriniz: {nos_str}\n📉 Qalan: {left} / 100"
                 requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                             json={"chat_id": chat_id, "text": f"🎟 Hazırda qalan bilet: **{left} / 100**", "parse_mode": "Markdown"})
+                             json={"chat_id": chat_id, "text": res_msg, "parse_mode": "Markdown"})
+                return "OK", 200
 
-        # 2. Ödəniş Uğurlu Olanda
-        if "successful_payment" in msg_data:
-            inv_payload = msg_data["successful_payment"]["invoice_payload"]
-            bought_count = int(inv_payload.split('_')[1])
-            
-            # Nömrələri generasiya edirik və bazanı yeniləyirik
-            nos, new_left = process_purchase(bought_count)
-            nos_str = ", ".join([f"№{n}" for n in nos])
-            
-            success_msg = (
-                "🎊 **Ödəniş Uğurlu!** 🎊\n\n"
-                f"🎫 **Sizin Bilet Nömrələriniz:** {nos_str}\n"
-                f"📉 **Qalan ümumi bilet:** {new_left} / 100\n\n"
-                "Uğurlar arzulayırıq! 🚀"
-            )
-            requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                         json={"chat_id": chat_id, "text": success_msg, "parse_mode": "Markdown"})
+            # --- 3. MƏTN KOMANDALARI ---
+            if "text" in msg:
+                text = msg["text"]
+                
+                if text == "/start":
+                    left, _ = get_db_values()
+                    welcome = (f"🌟 **NFT Lottery Aze** 🌟\n\n🎟 Qalan bilet: **{left} / 100**\n"
+                               f"💎 Qiymət: **5 Star**\n\nBilet sayını seçin:")
+                    markup = {
+                        "keyboard": [[{"text": "🎟 1 Bilet (5 ⭐)"}, {"text": "🎟 5 Bilet (25 ⭐)"}], 
+                                     [{"text": "🎟 10 Bilet (50 ⭐)"}], [{"text": "🔄 Yenilə"}]],
+                        "resize_keyboard": True
+                    }
+                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                                 json={"chat_id": chat_id, "text": welcome, "parse_mode": "Markdown", "reply_markup": markup})
 
-    # 3. Pre-checkout (Telegram-ın ödəniş təsdiqi)
-    if "pre_checkout_query" in update:
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/answerPreCheckoutQuery", 
-                     data={"pre_checkout_query_id": update["pre_checkout_query"]["id"], "ok": True})
+                elif "Bilet" in text:
+                    count = 10 if "10" in text else (5 if "5" in text else 1)
+                    left, _ = get_db_values()
+                    if left < count:
+                        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                                     json={"chat_id": chat_id, "text": f"❌ Cəmi {left} bilet qalıb."})
+                    else:
+                        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendInvoice", data={
+                            "chat_id": chat_id, "title": f"Lotereya Bileti ({count} ədəd)",
+                            "description": "Bilet nömrələri ödənişdən sonra veriləcək.",
+                            "payload": f"lottery_{count}", "provider_token": "", "currency": "XTR",
+                            "prices": json.dumps([{"label": "Bilet", "amount": count * 5}])
+                        })
+
+                elif "Yenilə" in text:
+                    left, _ = get_db_values()
+                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                                 json={"chat_id": chat_id, "text": f"🎟 Qalan bilet: **{left} / 100**", "parse_mode": "Markdown"})
+
+    except Exception as global_e:
+        print(f"Global Error: {global_e}")
 
     return "OK", 200
