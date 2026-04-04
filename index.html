@@ -1,97 +1,43 @@
-<!DOCTYPE html>
-<html lang="az">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BazarStare Lottery</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <style>
-        :root { --bg-dark: #12121e; --panel-bg: #1e1e2e; --accent-blue: #5d78ff; --text-main: #ffffff; --text-gray: #a1a1c1; }
-        body { font-family: -apple-system, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        .card { background: var(--panel-bg); border-radius: 16px; width: 100%; max-width: 400px; padding: 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        .image-container { background: #12121e; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-        .lottery-image { max-width: 100%; max-height: 180px; object-fit: contain; }
-        .info-row { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 12px; display: flex; justify-content: space-between; margin-bottom: 10px; }
-        .label { color: var(--text-gray); }
-        .buy-section { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 15px; margin-top: 15px; }
-        .buy-btn { background: var(--accent-blue); color: white; border: none; width: 100%; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-    </style>
-</head>
-<body>
+// 1. Firebase-dən bilet sayını alırıq
+database.ref('tickets_left').on('value', (snapshot) => {
+    const count = snapshot.val();
+    const liveCountElem = document.getElementById('liveCount');
+    if (liveCountElem) {
+        // Əgər bazada rəqəm yoxdursa, standart 15 göstər
+        liveCountElem.innerText = (count !== null) ? count + " / 15" : "15 / 15";
+    }
+});
 
-    <div class="card">
-        <div style="font-size: 20px; font-weight: bold;">Lotereya #11</div>
-        <div style="color: #f1c40f; margin-bottom: 20px;">Halloween Harvest</div>
-
-        <div class="image-container">
-            <img src="KiUSpHwiLpZbyQtO3P25vW4JmrIQTIqZCdvySYde.jpg" class="lottery-image">
-        </div>
-
-        <div class="info-row">
-            <span class="label">Qalan Biletlər:</span>
-            <span id="liveCount" style="font-weight: bold; color: #2ecc71;">Yüklənir...</span>
-        </div>
-
-        <div class="buy-section">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span class="label">Bilet Sayı:</span>
-                <b id="tVal">1</b>
-            </div>
-            <input type="range" id="ticketSlider" min="1" max="10" value="1" style="width:100%; accent-color:#f1c40f;" oninput="updatePrice(this.value)">
-            <button class="buy-btn" onclick="buyTicket()">Ödə: <span id="price">5</span> ⭐️</button>
-        </div>
-    </div>
-
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
-        // 1. FİREBASE KONFİQURASİYASI (Səhv dırnaqlar və boşluqlar təmizləndi)
-        const firebaseConfig = {
-            databaseURL: "https://my-lottery-db-default-rtdb.firebaseio.com/"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        // 2. BAZADAN MƏLUMATIN OXUNMASI
-        database.ref('tickets_left').on('value', (snapshot) => {
-            const count = snapshot.val();
-            // Əgər bazada rəqəm varsa göstər, yoxdursa "..." yaz
-            document.getElementById('liveCount').innerText = (count !== null ? count : "...") + " / 15";
-        });
-
-        // Qiyməti yeniləmək üçün funksiya
-        function updatePrice(val) {
-            document.getElementById('tVal').innerText = val;
-            document.getElementById('price').innerText = val * 5;
-        }
-
-        // 3. BİLET ALMA VƏ STAR ÖDƏNİŞİ (Botun özünə məlumat göndərir)
-function buyTicket() {
-    const countToBuy = parseInt(document.getElementById('ticketsSlider').value);
-    const totalPrice = countToBuy * 5;
-
-    const orderData = {
-        action: "buy_stars",
-        count: countToBuy,
-        total_price: totalPrice
-    };
-
-    // Məlumatı göndəririk
-    tg.sendData(JSON.stringify(orderData));
-
-    // 500 millisaniyə (yarım saniyə) gözləyirik ki, data mütləq çatsın, sonra bağlayırıq
-    setTimeout(() => {
-        tg.close();
-    }, 500);
+// 2. Bilet sayı dəyişəndə qiyməti yeniləyirik
+function updatePrice(val) {
+    document.getElementById('tVal').innerText = val;
+    document.getElementById('price').innerText = val * 5;
 }
 
-            // Məlumatı bota göndəririk ki, bot ödəmə fakturasını çıxarsın
-            tg.sendData(JSON.stringify(orderData));
-            tg.close(); // İstifadəçi botda ödəmə mesajını görsün deyə WebApp-ı bağlayırıq
+// 3. ÖDƏ DÜYMƏSİ (Əsas hissə)
+function buyTicket() {
+    try {
+        const slider = document.getElementById('ticketsSlider');
+        const countToBuy = parseInt(slider.value) || 1;
+        const totalPrice = countToBuy * 5;
+
+        const orderData = {
+            action: "buy_stars",
+            count: countToBuy,
+            total_price: totalPrice
+        };
+
+        // Məlumatı bota göndər
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.sendData(JSON.stringify(orderData));
+            
+            // Botun bağlanması üçün 1 saniyə gözləyirik
+            setTimeout(() => {
+                window.Telegram.WebApp.close();
+            }, 1000);
         }
-    </script>
-</body>
-</html>
+    } catch (e) {
+        console.error("Səhv baş verdi:", e);
+        alert("Xəta: " + e.message);
+    }
+}
