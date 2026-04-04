@@ -2,40 +2,27 @@ import json
 import requests
 from flask import Flask, request
 import firebase_admin
-from firebase_admin import credentials, db
+from firebase_admin import db
 
 app = Flask(__name__)
 
-# --- FİREBASE KONFİQURASİYASI ---
 FB_URL = 'https://my-lottery-db-default-rtdb.firebaseio.com'
+TOKEN = "8207828317:AAFub6sP6uoLWTcjydq2qybviAuaWTARA_o"
 
 if not firebase_admin._apps:
     try:
         firebase_admin.initialize_app(options={'databaseURL': FB_URL})
-    except Exception as e:
-        print(f"Firebase Init Error: {e}")
-
-TOKEN = "8207828317:AAFub6sP6uoLWTcjydq2qybviAuaWTARA_o"
+    except:
+        pass
 
 def get_db_values():
     try:
-        ref = db.reference('/')
-        data = ref.get()
+        data = db.reference('/').get()
         if data:
-            left = data.get('tickets_left', 100)
-            last_no = data.get('last_ticket_no', 0)
-            return int(left), int(last_no)
+            return int(data.get('tickets_left', 100)), int(data.get('last_ticket_no', 0))
     except:
         pass
     return 100, 0
-
-def get_user_tickets(user_id):
-    try:
-        ref = db.reference(f'user_tickets/{user_id}')
-        tickets = ref.get()
-        return tickets if isinstance(tickets, list) else []
-    except:
-        return []
 
 @app.route('/api', methods=['POST'])
 def webhook():
@@ -52,66 +39,42 @@ def webhook():
         chat_id = msg["chat"]["id"]
         user_id = str(msg["from"]["id"])
 
-        # --- ÖDƏNİŞİN QƏBULU ---
         if "successful_payment" in msg:
-            payload = msg["successful_payment"]["invoice_payload"]
-            count = int(payload.split('_')[1])
-            left, last_no = get_db_values()
-            new_nos = list(range(last_no + 1, last_no + count + 1))
-            
-            db.reference('/').update({
-                'tickets_left': max(0, left - count),
-                'last_ticket_no': last_no + count
-            })
-            
-            # Biletləri istifadəçiyə bağla
-            ref = db.reference(f'user_tickets/{user_id}')
-            current = ref.get() or []
-            ref.set(current + new_nos)
-            
-            nos_str = ", ".join([f"№{n}" for n in new_nos])
-            res = f"✅ **Ödəniş Təsdiqləndi!**\n\n🎫 Biletləriniz: {nos_str}\n📉 Qalan: {max(0, left - count)} / 100"
-            requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={"chat_id": chat_id, "text": res, "parse_mode": "Markdown"})
+            try:
+                count = int(msg["successful_payment"]["invoice_payload"].split('_')[1])
+                left, last_no = get_db_values()
+                new_nos = list(range(last_no + 1, last_no + count + 1))
+                db.reference('/').update({'tickets_left': max(0, left - count), 'last_ticket_no': last_no + count})
+                
+                ref = db.reference(f'user_tickets/{user_id}')
+                current = ref.get() or []
+                ref.set(current + new_nos)
+                
+                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                             json={"chat_id": chat_id, "text": f"✅ Uğurlu! Biletləriniz: {new_nos}"})
+            except:
+                pass
             return "OK", 200
 
         if "text" in msg:
             text = msg["text"]
-            
-            if text == "/start":
+            if text == "/start" or text == "🔄 Yenilə":
                 left, _ = get_db_values()
-                welcome = f"🌟 **NFT Lottery Aze** 🌟\n\n🎟 Qalan bilet: **{left} / 100**\n💎 1 Bilet: **5 Star**"
                 markup = {"keyboard": [[{"text": "🎟 1 Bilet (5 ⭐)"}, {"text": "🎟 5 Bilet (25 ⭐)"}], [{"text": "🎫 Biletlərim"}, {"text": "🔄 Yenilə"}]], "resize_keyboard": True}
-                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={"chat_id": chat_id, "text": welcome, "parse_mode": "Markdown", "reply_markup": markup})
-
+                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                             json={"chat_id": chat_id, "text": f"🌟 Qalan bilet: {left}", "reply_markup": markup})
+            
             elif text == "🎫 Biletlərim":
-                tickets = get_user_tickets(user_id)
-                if tickets:
-                    msg_text = f"👤 **Sizin Biletləriniz:**\n\n" + ", ".join([f"№{n}" for n in tickets])
-                else:
-                    msg_text = f"🤷‍♂️ Biletiniz yoxdur.\n(Sizin ID: `{user_id}`)"
-                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={"chat_id": chat_id, "text": msg_text, "parse_mode": "Markdown"})
+                tickets = db.reference(f'user_tickets/{user_id}').get() or []
+                res = ", ".join([f"№{n}" for n in tickets]) if tickets else f"Bilet yoxdur. (ID: {user_id})"
+                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={"chat_id": chat_id, "text": f"🎫 Biletləriniz: {res}"})
 
             elif "Bilet" in text:
-                # Dəqiq say tapma
-                count = 1
-                if "5 Bilet" in text: count = 5
-                
-                left, _ = get_db_values()
-                if left < count:
-                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={"chat_id": chat_id, "text": "❌ Kifayət qədər bilet yoxdur."})
-                else:
-                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendInvoice", data={
-                        "chat_id": chat_id, 
-                        "title": f"Bilet Alışı ({count} ədəd)",
-                        "description": f"{count} ədəd lotereya bileti.",
-                        "payload": f"lottery_{count}", 
-                        "provider_token": "", 
-                        "currency": "XTR",
-                        "prices": json.dumps([{"label": "Bilet", "amount": count * 5}])
-                    })
-
-            elif text == "🔄 Yenilə":
-                left, _ = get_db_values()
-                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={"chat_id": chat_id, "text": f"🎟 Qalan bilet: **{left} / 100**", "parse_mode": "Markdown"})
+                count = 5 if "5" in text else 1
+                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendInvoice", data={
+                    "chat_id": chat_id, "title": "Bilet", "description": f"{count} ədəd",
+                    "payload": f"lottery_{count}", "provider_token": "", "currency": "XTR",
+                    "prices": json.dumps([{"label": "Bilet", "amount": count * 5}])
+                })
 
     return "OK", 200
