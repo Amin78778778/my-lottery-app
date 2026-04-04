@@ -8,12 +8,6 @@ TOKEN = "8207828317:AAFub6sP6uoLWTcjydq2qybviAuaWTARA_o"
 
 def send_invoice(chat_id, count, total_price):
     url = f"https://api.telegram.org/bot{TOKEN}/sendInvoice"
-    # Stars üçün qiymət mütləq integer olmalıdır
-    try:
-        price_amount = int(total_price)
-    except:
-        price_amount = 5
-        
     payload = {
         "chat_id": chat_id,
         "title": "Lotereya Bileti",
@@ -21,33 +15,33 @@ def send_invoice(chat_id, count, total_price):
         "payload": "lottery_pay",
         "provider_token": "", 
         "currency": "XTR",
-        "prices": json.dumps([{"label": "Bilet", "amount": price_amount}])
+        "prices": json.dumps([{"label": "Bilet", "amount": int(total_price)}])
     }
     r = requests.post(url, data=payload)
-    print(f"TELEGRAM_RESPONSE: {r.text}") # Əgər Telegram imtina etsə, səbəbi burada yazılacaq
+    print(f"TELEGRAM_RESPONSE: {r.text}")
 
 @app.route('/api', methods=['POST'])
 def webhook():
     update = request.get_json()
-    print(f"FULL_UPDATE: {json.dumps(update)}") # Gələn bütün datanı logda görmək üçün
+    print(f"NEW_LOG: {json.dumps(update)}")
     
     if "message" in update:
         chat_id = update["message"]["chat"]["id"]
         
-        # WebApp-dan gələn datanı yoxlayırıq
+        # ƏSAS HİSSƏ: WebApp-dan gələn məlumatı yoxlayırıq
         if "web_app_data" in update["message"]:
-            raw_data = update["message"]["web_app_data"]["data"]
-            print(f"WEBAPP_DATA_RECEIVED: {raw_data}")
+            data_str = update["message"]["web_app_data"]["data"]
+            print(f"DATA_FOUND: {data_str}")
             try:
-                data = json.loads(raw_data)
+                data = json.loads(data_str)
                 send_invoice(chat_id, data.get("count"), data.get("total_price"))
             except Exception as e:
-                print(f"JSON_ERROR: {str(e)}")
+                print(f"ERROR: {e}")
         
-        # Əgər sadə mesajdırsa (Test üçün)
+        # Sadə mesajlar üçün (Test)
         elif "text" in update["message"] and update["message"]["text"] == "/start":
             requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                          data={"chat_id": chat_id, "text": "Xoş gəldiniz! Bilet almaq üçün düyməni sıxın."})
+                          data={"chat_id": chat_id, "text": "Bot hazır! İndi bilet alaraq yoxlayın."})
 
     if "pre_checkout_query" in update:
         requests.post(f"https://api.telegram.org/bot{TOKEN}/answerPreCheckoutQuery", 
