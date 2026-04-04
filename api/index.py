@@ -11,9 +11,10 @@ if not firebase_admin._apps:
     try:
         # Vercel-də credentials.Certificate(None) bəzən problem yarada bilər, 
         # ona görə ən sadə üsulla (App Default və ya URL) başladırıq.
-        firebase_admin.initialize_app(options={
-            'databaseURL': 'https://lottery-aze-default-rtdb.firebaseio.com'
-        })
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(options={
+        'databaseURL': 'https://my-lottery-db-default-rtdb.firebaseio.com'
+    })
     except Exception as e:
         print(f"Firebase Init Error: {e}")
 
