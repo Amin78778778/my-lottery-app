@@ -69,15 +69,24 @@
         }
 
         // 3. BİLET ALMA VƏ STAR ÖDƏNİŞİ (Botun özünə məlumat göndərir)
-        function buyTicket() {
-            const countToBuy = parseInt(document.getElementById('ticketSlider').value);
-            const totalPrice = countToBuy * 5;
+function buyTicket() {
+    const countToBuy = parseInt(document.getElementById('ticketsSlider').value);
+    const totalPrice = countToBuy * 5;
 
-            const orderData = {
-                action: "buy_stars",
-                count: countToBuy,
-                total_price: totalPrice
-            };
+    const orderData = {
+        action: "buy_stars",
+        count: countToBuy,
+        total_price: totalPrice
+    };
+
+    // Məlumatı göndəririk
+    tg.sendData(JSON.stringify(orderData));
+
+    // 500 millisaniyə (yarım saniyə) gözləyirik ki, data mütləq çatsın, sonra bağlayırıq
+    setTimeout(() => {
+        tg.close();
+    }, 500);
+}
 
             // Məlumatı bota göndəririk ki, bot ödəmə fakturasını çıxarsın
             tg.sendData(JSON.stringify(orderData));
